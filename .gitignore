@@ -1,0 +1,9 @@
+.DS_Store
+Porta.app/
+.build/
+.build-cache/
+work/
+*.log
+*.zip
+history.json
+status.json
