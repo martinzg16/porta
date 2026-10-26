@@ -1,26 +1,53 @@
 # Privacidad y almacenamiento
 
-Porta no implementa conexiones de red, analítica ni sincronización. La clasificación se ejecuta dentro del proceso con reglas locales.
+Porta no implementa red, analítica ni sincronización. Clasifica localmente.
 
-## Datos locales
+## Historial cifrado (desde 1.4)
 
-- `~/Library/Application Support/Porta/history.json`: contenido y representaciones capturadas, fecha, tipo, identificador y corrección de categoría cuando existe. Se escribe con permisos de archivo `0600`.
-- `~/Library/Application Support/Porta/status.json`: diagnóstico de arranque con PID, registro del atajo, código de error, estado de pausa y permiso de Accesibilidad. No contiene textos copiados. No es un registro continuo y puede quedar desactualizado.
+`~/Library/Application Support/Porta/history.porta` contiene un encabezado de
+versión no secreto, seguido del nonce, ciphertext y tag de AES-256-GCM. Todo
+el JSON del historial está cifrado: textos, imágenes, referencias a archivos,
+metadatos, títulos y categorías. Cada guardado usa un nonce aleatorio nuevo.
 
-El historial no está cifrado. Una copia de seguridad del Mac puede incluirlo. Borrar desde Porta elimina los elementos de su historial, no el portapapeles del sistema ni copias de seguridad externas.
+La clave aleatoria de 256 bits se guarda como contraseña genérica en el Llavero
+login de macOS, servicio `local.martin.porta.history-key.v1`, cuenta `aes256`.
+No se guarda en archivos de Porta, no se envía a un servidor y no se configura
+sincronización iCloud. Se respetan los controles de acceso por aplicación del
+Llavero; no se concede acceso a todas las aplicaciones. No se usa el Llavero
+Data Protection, que requiere una configuración de firma diferente: no se
+promete protección ThisDeviceOnly ni revocación al bloquear la pantalla.
 
-## Captura y exclusiones
+La clave y el historial descifrado permanecen en memoria mientras Porta está
+abierta. El cifrado protege el archivo almacenado, no un proceso comprometido,
+la sesión desbloqueada, el portapapeles del sistema ni datos pegados en otra app.
 
-Solo captura mientras está abierta y no está pausada. Ignora elementos que la aplicación de origen marca como ocultos, transitorios o autogenerados, y ciertos contenidos de gestores de contraseñas. Esas marcas no son universales.
+## Migración y fallos
 
-Conserva representaciones públicas de texto, imágenes y referencias a archivos. Los contenidos privados y las transferencias basadas en promesas no se soportan. Los límites son 100 elementos, 32 MiB totales y 12 MiB por captura.
+El antiguo `history.json` se cifra, se sincroniza a disco, se vuelve a leer,
+se autentica y se compara antes de eliminar el archivo antiguo. Un fallo
+conserva los datos existentes y detiene la captura. Si una interrupción deja
+ambos archivos, solo se retira el antiguo si el contenido completo coincide;
+si divergen, Porta se bloquea sin fusionarlos ni descartarlos.
 
-## Categorías
+No se genera otra clave si ya existe `history.porta` y falta su clave. Tampoco
+se hace fallback a texto claro. Tras desbloquear/autorizar el Llavero, usa
+«Reintentar historial cifrado». Si el archivo está dañado o la clave se ha
+perdido, conserva archivos y Llavero; no existe recuperación sin la clave.
 
-Datos personales es un filtro organizativo, no una barrera de seguridad. Su detección puede fallar y no verifica si una identificación es real o válida. Todos los elementos tienen el mismo tratamiento de almacenamiento.
+No vuelvas a una versión antigua: podría crear otro historial sin cifrar.
+Eliminar el archivo original no borra snapshots, backups ni sectores de SSD.
+No se garantiza recuperar el historial trasladando solo el archivo a otro Mac.
 
-## Permisos
+## Otros datos y permisos
 
-El atajo global abre el historial sin Accesibilidad. El pegado automático sí necesita ese permiso, porque simula una pulsación en la aplicación de destino. Antes de enviar teclas, Porta comprueba que esa aplicación esté activa y que se hayan soltado los modificadores.
+La carpeta tiene permisos 0700 y los archivos 0600. `history.lock` coordina
+instancias; `status.json` contiene PID, estado del atajo, pausa y Accesibilidad,
+sin contenido copiado. Estos permisos no bloquean a procesos con tu usuario.
+La firma ad hoc puede requerir una nueva autorización del Llavero tras actualizar.
 
-Desde 1.3.1, Porta restringe su carpeta a permisos 0700 y sus archivos a 0600, también al cargar datos existentes. El historial sigue sin cifrar: estas medidas no protegen frente a procesos que ya se ejecutan con tu mismo usuario. Véase [Seguridad](../SECURITY.md).
+Accesibilidad es opcional para pegar automáticamente. El historial admite
+100 elementos, 32 MiB de datos y 12 MiB por captura. Excluye las marcas de
+contenido secreto/transitorio que suministra la app de origen, pero no todas
+las aplicaciones las utilizan: Porta no es un gestor de contraseñas.
+Borrar el historial guarda una lista vacía cifrada; no borra la clave, el
+portapapeles activo ni las copias de seguridad. No garantiza borrado físico.

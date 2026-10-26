@@ -10,10 +10,11 @@ Porta es una aplicación local de macOS con acceso al portapapeles. No tiene
 servidor, telemetría, login, actualizador remoto ni dependencias de ejecución
 de terceros. Accesibilidad solo es necesaria para simular el pegado.
 
-- El historial sigue en texto claro, con permisos 0700 para su carpeta y 0600
-  para sus archivos. Esto limita otros usuarios del sistema; NO protege de
-  malware que ya se ejecute con tu usuario, de un administrador ni de copias
-  de seguridad. No sustituye al cifrado ni a un gestor de contraseñas.
+- Desde 1.4, el historial se cifra con AES-256-GCM y una clave del Llavero.
+  Mantiene permisos 0700/0600. El archivo cifrado necesita la clave para
+  recuperarse; memoria, portapapeles activo, malware con acceso al proceso y
+  copias antiguas en claro quedan fuera de esta protección. Consulta
+  [privacidad y migración](docs/PRIVACY.md).
 - Los marcadores de contenido secreto dependen de la app de origen. No se
   puede garantizar que se excluyan todas las contraseñas o tokens copiados.
 - La beta usa firma ad hoc con hardened runtime, sin Developer ID ni
@@ -50,7 +51,11 @@ Las pruebas de regresión usan exclusivamente datos sintéticos y carpetas
 sobredimensionado/corrupto y límites de elementos, además de las pruebas
 funcionales. CI verifica el DMG en macOS 14 ARM, 15 Intel y 26 ARM.
 
-Prioridades abiertas: cifrado del historial con gestión de claves y migración
-segura; firma Developer ID/notarización; validación manual de permisos y pegado
+Prioridades abiertas: firma Developer ID/notarización; validación manual de
+continuidad del Llavero entre actualizaciones ad hoc y de permisos y pegado
 con hardened runtime en un Mac limpio. Borrar el historial no garantiza el
 borrado físico de SSD, snapshots ni backups.
+
+## Cifrado en 1.4
+
+AES-256-GCM, encabezado autenticado, nonce aleatorio por guardado y clave en el Llavero login. Migración con verificación antes de eliminar el original; fallos de clave, autenticación o escritura bloquean posteriores guardados. Pruebas sintéticas cubren migración interrumpida, conflicto, clave perdida, manipulación, reinicio y recuperación de una clave de prueba desde otro proceso. No se relajan ACL del Llavero ni se añaden entitlements de acceso compartido.

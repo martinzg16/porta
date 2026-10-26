@@ -3,6 +3,7 @@ set -eu
 cd "$(dirname "$0")/.."
 zsh build.sh
 Porta.app/Contents/MacOS/Porta --self-test
+Porta.app/Contents/MacOS/Porta --keychain-self-test
 version=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' Porta.app/Contents/Info.plist)
 mkdir -p dist
 stage=$(mktemp -d "${TMPDIR:-/tmp}/porta-package.XXXXXX")

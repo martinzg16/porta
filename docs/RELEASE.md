@@ -1,23 +1,19 @@
-Descarga el archivo **Porta-1.3.1-universal-beta.dmg** de Assets. Los archivos «Source code» son para desarrollo.
+**[Descarga Porta-1.4-universal-beta.dmg](https://github.com/martinzg16/porta/releases/download/v1.4-beta.1/Porta-1.4-universal-beta.dmg)** · [Guía visual](https://martinzg16.github.io/porta/#instalar)
 
-**[Guía visual de instalación](https://martinzg16.github.io/porta/#instalar)**. El instalador contiene solo Porta y el acceso a Aplicaciones; no incluye archivos LEEME.
+Mac Intel o Apple Silicon, macOS 14 o posterior. Abre el DMG y arrastra Porta a Aplicaciones. Sal de la versión anterior antes de reemplazarla.
 
-1. Abre el DMG y arrastra Porta a Aplicaciones.
-2. Expulsa el disco y abre Porta desde Aplicaciones.
-3. Copia algo y pulsa **⌘⌥V** para abrir el historial.
+### Historial cifrado
 
-**Mac Intel o Apple Silicon, macOS 14 o posterior.** No requiere Xcode ni Terminal. No funciona en Windows o Linux.
+- AES-256-GCM para todo el historial, incluidos títulos, categorías, texto y representaciones de imágenes y archivos. Cada guardado utiliza un nonce nuevo.
+- Clave aleatoria de 256 bits en el Llavero de macOS, sin servidor ni contraseña propia de Porta.
+- Migración automática: cifra, vuelve a leer, autentica y compara antes de retirar el archivo antiguo.
+- Si falta la clave, se deniega el Llavero o el archivo no se puede descifrar, detiene la captura y no guarda datos en claro ni sobrescribe el archivo con un historial vacío.
+- Si hay dos instancias de la nueva versión, solo una puede abrir el historial.
 
-**Beta sin notarizar:** macOS puede bloquear la primera apertura. Solo si confías en esta descarga oficial, tras intentar abrirla utiliza Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente. No desactives Gatekeeper. Los equipos gestionados pueden impedirlo.
+**macOS puede pedir permiso para acceder a la clave del Llavero**, especialmente al cambiar de versión de esta beta con firma local. Desbloquea el Llavero y utiliza «Reintentar historial cifrado» en el menú. Si no se resuelve, conserva los archivos y el Llavero; no borres ni reemplaces la clave. No hay recuperación sin la clave. No se garantiza traslado del historial a otro Mac. Evita volver a versiones anteriores: pueden volver a guardar datos sin cifrar.
 
-Novedades: paquete universal, guía de bienvenida y posibilidad de recuperar una copia sin conceder Accesibilidad. Para pegar automáticamente, concede ese permiso; sin él, Enter copia el elemento, Esc cierra el selector y ⌘V lo pega.
+El cifrado protege el archivo en reposo, no los datos en memoria ni el portapapeles activo. No elimina las copias antiguas de backups o snapshots y no convierte Porta en un gestor de contraseñas.
 
-Para actualizar, sal de Porta antes de reemplazarla. El historial se conserva. Las actualizaciones de esta beta pueden requerir renovar el permiso de Accesibilidad. No hay actualización automática.
+**Beta sin notarizar por Apple.** Tras intentar abrirla, si confías en la descarga oficial, puede ser necesario usar Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente. No desactives las protecciones del Mac. Accesibilidad sigue siendo opcional para pegar automáticamente.
 
-El proceso de publicación verifica el mismo DMG en macOS 14 ARM, macOS 15 Intel y macOS 26 ARM: integridad, firma local, instalación por copia y pruebas de clasificación, persistencia y formatos del portapapeles. Esto no certifica todas las aplicaciones ni el pegado automático en todos los equipos. Informa de problemas con pasos y datos ficticios en Issues.
-
-El historial es local y no está cifrado. No uses Porta como gestor de contraseñas.
-
-### Seguridad en esta versión
-
-Permisos privados para la carpeta y los archivos del historial, rechazo de enlaces simbólicos al cargar datos, límites al tamaño del historial y hardened runtime. La web limita scripts y recursos mediante CSP; las acciones de CI están fijadas a commits. El historial sigue sin cifrar y esta beta no está notarizada.
+Pruebas: cifrado/descifrado, nonce único por guardado, manipulación, clave incorrecta o perdida, migración interrumpida, conflictos con un historial antiguo, fallo de escritura, exclusión de instancias y clave temporal del Llavero recuperada desde otro proceso. No se usan historiales ni credenciales personales. La autorización tras actualizar una firma ad hoc y el pegado entre aplicaciones requieren además validación manual en cada entorno.

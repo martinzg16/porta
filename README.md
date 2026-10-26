@@ -45,7 +45,7 @@ La clasificación **no usa un modelo de IA**. Detecta patrones de DNI/NIE y dire
 
 ### Descargar la aplicación
 
-**[Descargar Porta para Mac — beta 1.3.1](https://github.com/martinzg16/porta/releases/download/v1.3.1-beta.1/Porta-1.3.1-universal-beta.dmg)**
+**[Descargar Porta para Mac — beta 1.4](https://github.com/martinzg16/porta/releases/download/v1.4-beta.1/Porta-1.4-universal-beta.dmg)**
 
 También puedes consultar las [versiones publicadas](https://github.com/martinzg16/porta/releases). Descarga el archivo `.dmg` desde Assets (no «Source code»).
 
@@ -94,7 +94,7 @@ Abrir el historial no requiere Accesibilidad. Sin ese permiso, Enter copia el el
 
 Porta funciona localmente: **sin cuenta, sin servidor y sin envío del portapapeles a servicios externos**. El repositorio contiene código y ejemplos sintéticos, nunca mi historial personal.
 
-El historial se guarda en `~/Library/Application Support/Porta/history.json`. **No está cifrado**. Se excluyen contenidos marcados como secretos o transitorios por la aplicación de origen, pero no todas las aplicaciones los identifican: no es un gestor de contraseñas.
+El historial se guarda en `~/Library/Application Support/Porta/history.porta`, **cifrado con AES-256-GCM**, y la clave permanece en el Llavero de macOS. La migración del antiguo `history.json` se verifica antes de retirarlo. Si la clave no está disponible o falla el descifrado, Porta detiene la captura y conserva los archivos. No borres la clave del Llavero: sin ella no se puede recuperar el historial. Se excluyen contenidos marcados como secretos o transitorios por la aplicación de origen, pero no todas las aplicaciones los identifican: no es un gestor de contraseñas.
 
 - Hasta **100 elementos**, **32 MiB en total** y **12 MiB por copia**.
 - Comprueba cambios cada **0,4 segundos**; puede perder copias más rápidas.

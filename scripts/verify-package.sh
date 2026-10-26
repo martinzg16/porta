@@ -25,4 +25,5 @@ plutil -lint "$app/Contents/Info.plist"
 lipo "$app/Contents/MacOS/Porta" -verify_arch arm64 x86_64
 codesign --verify --deep --strict "$app"
 "$app/Contents/MacOS/Porta" --self-test
+"$app/Contents/MacOS/Porta" --keychain-self-test
 echo "PASS: downloaded-package structure, copy, universal binary, signature and native self-tests"

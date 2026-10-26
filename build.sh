@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 mkdir -p .build Porta.app/Contents/MacOS
 cp Resources/Info.plist Porta.app/Contents/Info.plist
 for cpu in arm64 x86_64; do
-  xcrun swiftc -module-cache-path "${SWIFT_MODULECACHE_PATH:-${TMPDIR:-/tmp}/porta-module-cache}" -swift-version 5 -O -target "$cpu-apple-macosx14.0" Source/main.swift -o ".build/Porta-$cpu" -framework AppKit -framework ApplicationServices -framework CryptoKit -framework Carbon
+  xcrun swiftc -module-cache-path "${SWIFT_MODULECACHE_PATH:-${TMPDIR:-/tmp}/porta-module-cache}" -swift-version 5 -O -target "$cpu-apple-macosx14.0" Source/*.swift -o ".build/Porta-$cpu" -framework AppKit -framework ApplicationServices -framework CryptoKit -framework Carbon -framework Security
 done
 lipo -create .build/Porta-arm64 .build/Porta-x86_64 -output Porta.app/Contents/MacOS/Porta
 # Only remove extended attributes from our generated bundle, never from downloads.

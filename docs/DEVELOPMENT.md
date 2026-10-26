@@ -54,7 +54,7 @@ No añadir historiales, diagnósticos locales ni capturas que contengan datos re
 
 ```sh
 zsh scripts/package.sh
-zsh scripts/verify-package.sh dist/Porta-1.3.1-universal-beta.dmg
+zsh scripts/verify-package.sh dist/Porta-1.4-universal-beta.dmg
 ```
 
 Genera un DMG con Porta, un acceso a Aplicaciones y SHA-256.
@@ -62,7 +62,7 @@ El verificador copia la aplicación fuera del DMG, valida su firma y ejecuta
 las pruebas sobre esa copia. No usa el historial ni el portapapeles general.
 
 GitHub Actions construye un único DMG en macOS 14 y prueba ese mismo archivo
-en macOS 14 ARM, 15 Intel y 26 ARM. Un tag `v1.3.1-beta.1` publica una prerelease
+en macOS 14 ARM, 15 Intel y 26 ARM. Un tag `v1.4-beta.1` publica una prerelease
 solo cuando todas las comprobaciones pasan. Los otros pushes solo prueban.
 Antes de crear un nuevo tag, actualizar versión, build y notas de release.
 
@@ -89,3 +89,9 @@ y comprobar Gatekeeper, bienvenida, captura, búsqueda, copia sin permiso,
 pegado con permiso, reinicio, actualización y conflicto de atajo.
 Probar al menos TextEdit, Finder, un navegador y las aplicaciones destino
 habituales. CI no concede Accesibilidad ni verifica el pegado entre apps.
+
+## Cifrado y pruebas del Llavero
+
+`Source/EncryptedHistory.swift` gestiona AES-GCM, la clave del Llavero y la migración. `Source/EncryptionTests.swift` contiene pruebas con claves en memoria y carpetas temporales. `--keychain-self-test` crea y elimina una entrada de servicio aleatorio `local.martin.porta.test.UUID` y la recupera desde otro proceso; no lee la clave real de Porta. Se ejecuta durante el empaquetado y al verificar el DMG.
+
+Probar manualmente la primera autorización del Llavero y la actualización entre firmas distintas. Las pruebas automatizadas no garantizan que macOS no pida confirmación al usuario. El archivo legado solo se retira tras verificar la migración.

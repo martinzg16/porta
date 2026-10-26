@@ -112,6 +112,9 @@ enum HistoryStore {
         // Atomic replacement does not follow a destination symlink. The private
         // directory prevents other OS users from reading intermediate files.
         try data.write(to: url, options: .atomic)
+        let handle = try FileHandle(forWritingTo: url)
+        defer { try? handle.close() }
+        try handle.synchronize()
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }
     static func bounded(_ clips: [Clip]) -> [Clip] {
@@ -125,9 +128,8 @@ enum HistoryStore {
         }
         return result
     }
-    static func load(from url: URL) throws -> [Clip] {
+    static func read(from url: URL) throws -> Data {
         try prepare(url.deletingLastPathComponent())
-        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
         let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
         guard attrs[.type] as? FileAttributeType == .typeRegular,
               (attrs[.ownerAccountID] as? NSNumber)?.uint32Value == getuid() else { throw Failure.unsafePath }
@@ -137,7 +139,10 @@ enum HistoryStore {
         defer { try? handle.close() }
         let data = try handle.read(upToCount: diskLimit + 1) ?? Data()
         guard data.count <= diskLimit else { throw Failure.tooLarge }
-        return bounded(try JSONDecoder().decode([Clip].self, from: data))
+        return data
+    }
+    static func load(from url: URL) throws -> [Clip] {
+        return bounded(try JSONDecoder().decode([Clip].self, from: read(from: url)))
     }
 }
 
@@ -168,11 +173,18 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
     let marker: Int64 = 0x504F525441
     let diskQueue = DispatchQueue(label: "Porta.history")
     let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("Porta", isDirectory: true)
-    var historyURL: URL { directory.appendingPathComponent("history.json") }
+    var encryptedHistory: EncryptedHistory?
+    var historyReady = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        if let saved = try? HistoryStore.load(from: historyURL) { clips = saved }
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: "local.martin.porta")
+            .filter { $0.processIdentifier != ProcessInfo.processInfo.processIdentifier }
+        if !others.isEmpty {
+            let alert = NSAlert(); alert.messageText = "Porta ya está abierta"
+            alert.informativeText = "Sal de la otra instancia antes de abrir esta versión para proteger el historial."
+            alert.runModal(); NSApp.terminate(nil); return
+        }
         setupPanel()
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         status.button?.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "Porta · Portapapeles")
@@ -193,9 +205,10 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
             default: return event
             }
         }
+        retryHistory()
         // Opening history and copying a selection do not require Accessibility.
         writeStatus()
-        if !UserDefaults.standard.bool(forKey: "hasSeenWelcome") {
+        if historyReady && !UserDefaults.standard.bool(forKey: "hasSeenWelcome") {
             UserDefaults.standard.set(true, forKey: "hasSeenWelcome")
             DispatchQueue.main.async { self.showWelcome() }
         }
@@ -233,7 +246,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
         let board = NSPasteboard.general
         guard board.changeCount != lastChange else { return }
         lastChange = board.changeCount
-        guard !paused, let captured = ClipCodec.capture(board) else { return }
+        guard historyReady, !paused, let captured = ClipCodec.capture(board) else { return }
         let clip = captured.preservingCategory(from: clips.first { $0.id == captured.id })
         clips.removeAll { $0.id == clip.id }
         clips.insert(clip, at: 0)
@@ -242,15 +255,40 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
         if panel.isVisible { refresh() }
     }
 
+    @objc func retryHistory() {
+        diskQueue.sync {} // drain prior saves before reopening and reloading
+        historyReady = false
+        encryptedHistory = nil
+        do {
+            let store = try EncryptedHistory(directory: directory)
+            clips = try store.load()
+            encryptedHistory = store
+            historyReady = true
+            lastChange = NSPasteboard.general.changeCount
+            refresh()
+        } catch { historyFailure() }
+        updateMenu()
+    }
+    func historyFailure() {
+        historyReady = false
+        updateMenu()
+        footer.stringValue = "Historial bloqueado. Reintenta desde el menú de Porta."
+        let alert = NSAlert()
+        alert.messageText = "No se pudo abrir o guardar el historial cifrado"
+        alert.informativeText = "La captura se ha detenido para proteger tus datos. Desbloquea el Llavero y autoriza a Porta si macOS lo solicita; después elige Reintentar historial cifrado en el menú. Si falta la clave o el archivo está dañado, conserva los archivos y el Llavero: Porta no creará otra clave ni sobrescribirá un historial que no pueda descifrar. No borres la clave de Porta."
+        alert.addButton(withTitle: "Entendido")
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
+    }
     func save() {
+        guard historyReady, let store = encryptedHistory else { return }
         let snapshot = clips
-        let url = historyURL
         diskQueue.async {
-            do {
-                let data = try JSONEncoder().encode(HistoryStore.bounded(snapshot))
-                try HistoryStore.write(data, to: url)
-            } catch {
-                DispatchQueue.main.async { self.footer.stringValue = "No se pudo guardar el historial en disco." }
+            do { try store.save(snapshot) }
+            catch {
+                DispatchQueue.main.async {
+                    if self.encryptedHistory === store && self.historyReady { self.historyFailure() }
+                }
             }
         }
     }
@@ -358,6 +396,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
         } else { categoryEditor.selectItem(at: 0) }
     }
     @objc func categoryChanged() {
+        guard historyReady else { return }
         guard filtered.indices.contains(table.selectedRow), let index = clips.firstIndex(where: { $0.id == filtered[table.selectedRow].id }) else { return }
         let choice = categoryEditor.indexOfSelectedItem - 1
         clips[index].categoryOverride = ClipCategory.allCases.indices.contains(choice) ? ClipCategory.allCases[choice].rawValue : nil
@@ -397,7 +436,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
     }
     func windowWillClose(_ notification: Notification) { target?.activate(options: []) }
     @objc func choose() {
-        guard filtered.indices.contains(table.selectedRow), !pasting else { return }
+        guard historyReady, filtered.indices.contains(table.selectedRow), !pasting else { return }
         let clip = filtered[table.selectedRow]
         guard ClipCodec.restore(clip, to: .general) else { footer.stringValue = "No se pudo copiar este elemento."; return }
         lastChange = NSPasteboard.general.changeCount
@@ -431,10 +470,10 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
     func updateMenu() {
         guard status != nil else { return }
         let menu = NSMenu()
-        let state = NSMenuItem(title: paused ? "Porta · pausada" : hotKey != nil ? "Porta · ⌥⌘V activo" : "Porta · atajo no disponible (\(hotKeyStatus))", action: nil, keyEquivalent: "")
+        let state = NSMenuItem(title: !historyReady ? "Porta · historial bloqueado" : paused ? "Porta · pausada" : hotKey != nil ? "Porta · ⌥⌘V activo" : "Porta · atajo no disponible (\(hotKeyStatus))", action: nil, keyEquivalent: "")
         menu.addItem(state)
         menu.addItem(.separator())
-        for (title, action) in [("Abrir historial · ⌥⌘V", #selector(openHistory)), (paused ? "Reanudar historial y ⌥⌘V" : "Pausar historial y ⌥⌘V", #selector(togglePause)), ("Borrar historial…", #selector(clearHistory)), ("Activar permiso de Accesibilidad…", #selector(permissions)), ("Cómo usar Porta…", #selector(showWelcome)), ("Salir de Porta", #selector(quit))] {
+        for (title, action) in [("Abrir historial · ⌥⌘V", #selector(openHistory)), (paused ? "Reanudar historial y ⌥⌘V" : "Pausar historial y ⌥⌘V", #selector(togglePause)), ("Borrar historial…", #selector(clearHistory)), ("Activar permiso de Accesibilidad…", #selector(permissions)), ("Reintentar historial cifrado", #selector(retryHistory)), ("Cómo usar Porta…", #selector(showWelcome)), ("Salir de Porta", #selector(quit))] {
             let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
             item.target = self
             menu.addItem(item)
@@ -442,6 +481,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
         status.menu = menu
     }
     @objc func togglePause() {
+        guard historyReady else { retryHistory(); return }
         paused.toggle()
         lastChange = NSPasteboard.general.changeCount
         if paused, let hotKey { UnregisterEventHotKey(hotKey); self.hotKey = nil }
@@ -450,6 +490,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
         writeStatus()
     }
     @objc func clearHistory() {
+        guard historyReady else { retryHistory(); return }
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "¿Borrar todo el historial?"
@@ -461,7 +502,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "Bienvenido a Porta"
-        alert.informativeText = "Copia con ⌘C. Pulsa ⌥⌘V, elige del historial y pulsa Enter. ⌘V pega directamente y permite el pegado automático del dictado.\n\nActiva Porta en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad para pegar automáticamente en otra aplicación. Sin ese permiso, Enter copia el elemento: pulsa Esc y ⌘V para pegarlo.\n\nEl historial se guarda solo en este Mac (hasta 100 elementos). Puedes pausarlo o borrarlo desde el icono de la barra de menús."
+        alert.informativeText = "Copia con ⌘C. Pulsa ⌥⌘V, elige del historial y pulsa Enter. ⌘V pega directamente y permite el pegado automático del dictado.\n\nActiva Porta en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad para pegar automáticamente en otra aplicación. Sin ese permiso, Enter copia el elemento: pulsa Esc y ⌘V para pegarlo.\n\nEl historial se guarda cifrado en este Mac (hasta 100 elementos), con una clave en el Llavero. No borres esa clave: sin ella no se puede recuperar. Puedes pausarlo o borrarlo desde el icono de la barra de menús."
         alert.addButton(withTitle: "Abrir ajustes"); alert.addButton(withTitle: "Más tarde")
         if alert.runModal() == .alertFirstButtonReturn { permissions() }
     }
@@ -484,6 +525,7 @@ func shortcutSelfTest() {
 func selfTest() {
     categorySelfTest()
     storageSecuritySelfTest()
+    encryptionSelfTest()
     let board = NSPasteboard.withUniqueName()
     defer { board.releaseGlobally() }
     board.setString("Prueba de texto con acentos: información 🐈", forType: .string)
@@ -590,6 +632,10 @@ if CommandLine.arguments.contains("--category-self-test") {
     categorySelfTest()
 } else if CommandLine.arguments.contains("--shortcut-self-test") {
     shortcutSelfTest()
+} else if CommandLine.arguments.contains("--keychain-read-self-test") {
+    keychainReadSelfTest()
+} else if CommandLine.arguments.contains("--keychain-self-test") {
+    keychainSelfTest()
 } else if CommandLine.arguments.contains("--self-test") {
     selfTest()
 } else {
