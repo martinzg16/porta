@@ -57,7 +57,7 @@ Requiere **macOS 14 o posterior**, en **Intel o Apple Silicon**. No necesita Xco
 
 **La beta no está notarizada por Apple.** macOS puede bloquear la primera apertura. Si confías en la descarga del repositorio oficial, tras intentar abrirla utiliza **Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente**, siguiendo la [guía de Apple](https://support.apple.com/es-es/102445). No desactives las protecciones generales del Mac. En equipos gestionados, esta excepción puede estar bloqueada.
 
-[Guía visual de instalación](https://martinzg16.github.io/porta//#instalar).
+[Guía visual de instalación](https://martinzg16.github.io/porta/#instalar).
 
 ### Compilar desde el código
 
