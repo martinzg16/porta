@@ -1,6 +1,6 @@
 Descarga el archivo **Porta-1.3-universal-beta.dmg** de Assets. Los archivos «Source code» son para desarrollo.
 
-**[Guía visual de instalación](https://porta-clipboard.secretfield32.chatgpt.site/#instalar)**. El instalador contiene solo Porta y el acceso a Aplicaciones; no incluye archivos LEEME.
+**[Guía visual de instalación](https://martinzg16.github.io/porta//#instalar)**. El instalador contiene solo Porta y el acceso a Aplicaciones; no incluye archivos LEEME.
 
 1. Abre el DMG y arrastra Porta a Aplicaciones.
 2. Expulsa el disco y abre Porta desde Aplicaciones.

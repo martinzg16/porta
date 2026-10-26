@@ -39,6 +39,8 @@ El impacto que busco es cotidiano: menos volver atrás, menos repetir búsquedas
 
 La clasificación **no usa un modelo de IA**. Detecta patrones de DNI/NIE y direcciones, y términos relacionados con trabajo. Los casos ambiguos quedan en Otros; cuando detecta datos personales en un texto laboral, prioriza Datos personales. No valida documentos de identidad ni entiende todos los contextos.
 
+**[Web de Porta: descarga y guía visual](https://martinzg16.github.io/porta/)**
+
 ## Cómo probarlo
 
 ### Descargar la aplicación
@@ -55,7 +57,7 @@ Requiere **macOS 14 o posterior**, en **Intel o Apple Silicon**. No necesita Xco
 
 **La beta no está notarizada por Apple.** macOS puede bloquear la primera apertura. Si confías en la descarga del repositorio oficial, tras intentar abrirla utiliza **Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente**, siguiendo la [guía de Apple](https://support.apple.com/es-es/102445). No desactives las protecciones generales del Mac. En equipos gestionados, esta excepción puede estar bloqueada.
 
-[Guía visual de instalación](https://porta-clipboard.secretfield32.chatgpt.site/#instalar).
+[Guía visual de instalación](https://martinzg16.github.io/porta//#instalar).
 
 ### Compilar desde el código
 
