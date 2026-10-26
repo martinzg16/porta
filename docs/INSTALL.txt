@@ -1,0 +1,50 @@
+PORTA — INSTALACIÓN
+
+Requisitos: Mac con Apple Silicon o Intel, macOS 14 o posterior.
+No necesitas Xcode, Terminal ni instalar dependencias.
+
+1. Abre el archivo DMG y arrastra Porta a Applications (Aplicaciones).
+2. Expulsa el disco Porta y abre Porta desde Aplicaciones.
+3. Porta vive en la barra de menús: busca el icono del portapapeles.
+4. Copia texto con Command+C y abre el historial con Command+Option+V.
+5. Para pegar automáticamente, concede Accesibilidad a Porta en
+   Ajustes del Sistema > Privacidad y seguridad > Accesibilidad.
+
+BETA SIN NOTARIZAR
+Si el archivo descargado incluye «beta» en su nombre, esta versión no
+está notarizada por Apple. macOS puede bloquear su primera apertura.
+Solo si confías en la descarga del repositorio oficial, tras intentar
+abrirla ve a Ajustes del Sistema > Privacidad y seguridad > Abrir igualmente.
+No desactives Gatekeeper ni las protecciones generales de tu Mac.
+Un Mac gestionado por tu empresa puede impedir esta excepción.
+Repositorio oficial: https://github.com/martinzg16/porta
+
+SIN PERMISO DE ACCESIBILIDAD
+Puedes abrir y buscar en el historial. Al seleccionar un elemento sin
+el permiso, se copia al portapapeles para que lo pegues con Command+V.
+Con el permiso concedido, Enter lo pega en la aplicación de destino.
+
+SI EL ATAJO NO FUNCIONA
+Abre el historial desde el icono de Porta. Otra aplicación puede estar
+usando Command+Option+V. En Finder este atajo normalmente mueve archivos.
+
+ACTUALIZAR
+Sal de Porta desde su menú antes de sustituirla en Aplicaciones.
+Tu historial se conserva. Una beta con firma local puede necesitar que
+elimines y vuelvas a añadir Porta al permiso de Accesibilidad.
+No incluye actualización ni inicio automático.
+
+PRIVACIDAD
+Funciona localmente, sin servidor. El historial no está cifrado.
+No lo uses como gestor de contraseñas. Puedes pausarlo y borrarlo desde
+el menú. Los archivos copiados deben seguir en su ubicación original.
+
+DESINSTALAR
+Sal de Porta y elimina Porta de Aplicaciones. Para borrar también tus
+datos, usa «Borrar historial» antes de salir, o elimina la carpeta
+~/Library/Application Support/Porta desde Ir > Ir a la carpeta en Finder.
+
+AYUDA
+https://github.com/martinzg16/porta/issues
+Indica versión de Porta, macOS, tipo de Mac y pasos con datos ficticios.
+No adjuntes tu historial ni información personal.

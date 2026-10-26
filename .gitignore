@@ -7,3 +7,5 @@ work/
 *.zip
 history.json
 status.json
+
+dist/

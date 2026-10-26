@@ -142,8 +142,12 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
             default: return event
             }
         }
-        // Opening history does not require Accessibility. Ask only when pasting.
+        // Opening history and copying a selection do not require Accessibility.
         writeStatus()
+        if !UserDefaults.standard.bool(forKey: "hasSeenWelcome") {
+            UserDefaults.standard.set(true, forKey: "hasSeenWelcome")
+            DispatchQueue.main.async { self.showWelcome() }
+        }
     }
 
     func setupHotKey() {
@@ -346,14 +350,13 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
     func windowWillClose(_ notification: Notification) { target?.activate(options: []) }
     @objc func choose() {
         guard filtered.indices.contains(table.selectedRow), !pasting else { return }
-        guard AXIsProcessTrusted() else {
-            footer.stringValue = "Activa Accesibilidad para pegar en otra aplicación."
-            permissions()
-            return
-        }
         let clip = filtered[table.selectedRow]
         guard ClipCodec.restore(clip, to: .general) else { footer.stringValue = "No se pudo copiar este elemento."; return }
         lastChange = NSPasteboard.general.changeCount
+        guard AXIsProcessTrusted() else {
+            footer.stringValue = "Copiado · Pulsa Esc y luego ⌘V para pegar."
+            return
+        }
         let destination = target
         pasting = true
         panel.orderOut(nil)
@@ -383,7 +386,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
         let state = NSMenuItem(title: paused ? "Porta · pausada" : hotKey != nil ? "Porta · ⌥⌘V activo" : "Porta · atajo no disponible (\(hotKeyStatus))", action: nil, keyEquivalent: "")
         menu.addItem(state)
         menu.addItem(.separator())
-        for (title, action) in [("Abrir historial · ⌥⌘V", #selector(openHistory)), (paused ? "Reanudar historial y ⌥⌘V" : "Pausar historial y ⌥⌘V", #selector(togglePause)), ("Borrar historial…", #selector(clearHistory)), ("Activar permiso de Accesibilidad…", #selector(permissions)), ("Salir de Porta", #selector(quit))] {
+        for (title, action) in [("Abrir historial · ⌥⌘V", #selector(openHistory)), (paused ? "Reanudar historial y ⌥⌘V" : "Pausar historial y ⌥⌘V", #selector(togglePause)), ("Borrar historial…", #selector(clearHistory)), ("Activar permiso de Accesibilidad…", #selector(permissions)), ("Cómo usar Porta…", #selector(showWelcome)), ("Salir de Porta", #selector(quit))] {
             let item = NSMenuItem(title: title, action: action, keyEquivalent: "")
             item.target = self
             menu.addItem(item)
@@ -406,11 +409,11 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
         alert.addButton(withTitle: "Borrar"); alert.addButton(withTitle: "Cancelar")
         if alert.runModal() == .alertFirstButtonReturn { clips.removeAll(); save(); refresh() }
     }
-    func showWelcome() {
+    @objc func showWelcome() {
         NSApp.activate(ignoringOtherApps: true)
         let alert = NSAlert()
         alert.messageText = "Bienvenido a Porta"
-        alert.informativeText = "Copia con ⌘C. Pulsa ⌥⌘V, elige del historial y pulsa Enter. ⌘V pega directamente y permite el pegado automático del dictado.\n\nActiva Porta en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad para pegar automáticamente en otra aplicación. El selector no necesita ese permiso.\n\nEl historial se guarda solo en este Mac (hasta 100 elementos). Puedes pausarlo o borrarlo desde el icono de la barra de menús."
+        alert.informativeText = "Copia con ⌘C. Pulsa ⌥⌘V, elige del historial y pulsa Enter. ⌘V pega directamente y permite el pegado automático del dictado.\n\nActiva Porta en Ajustes del Sistema → Privacidad y seguridad → Accesibilidad para pegar automáticamente en otra aplicación. Sin ese permiso, Enter copia el elemento: pulsa Esc y ⌘V para pegarlo.\n\nEl historial se guarda solo en este Mac (hasta 100 elementos). Puedes pausarlo o borrarlo desde el icono de la barra de menús."
         alert.addButton(withTitle: "Abrir ajustes"); alert.addButton(withTitle: "Más tarde")
         if alert.runModal() == .alertFirstButtonReturn { permissions() }
     }

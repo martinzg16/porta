@@ -1,9 +1,19 @@
 #!/bin/zsh
 set -eu
 cd "$(dirname "$0")"
-mkdir -p Porta.app/Contents/MacOS
+mkdir -p .build Porta.app/Contents/MacOS
 cp Resources/Info.plist Porta.app/Contents/Info.plist
-xcrun swiftc -module-cache-path "${SWIFT_MODULECACHE_PATH:-${TMPDIR:-/tmp}/porta-module-cache}" -swift-version 5 -O -target arm64-apple-macosx14.0 Source/main.swift -o Porta.app/Contents/MacOS/Porta -framework AppKit -framework ApplicationServices -framework CryptoKit -framework Carbon
+for cpu in arm64 x86_64; do
+  xcrun swiftc -module-cache-path "${SWIFT_MODULECACHE_PATH:-${TMPDIR:-/tmp}/porta-module-cache}" -swift-version 5 -O -target "$cpu-apple-macosx14.0" Source/main.swift -o ".build/Porta-$cpu" -framework AppKit -framework ApplicationServices -framework CryptoKit -framework Carbon
+done
+lipo -create .build/Porta-arm64 .build/Porta-x86_64 -output Porta.app/Contents/MacOS/Porta
+# Only remove extended attributes from our generated bundle, never from downloads.
 xattr -cr Porta.app
-codesign --force --sign - Porta.app
-echo "Aplicación compilada: Porta.app"
+if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
+  codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" Porta.app
+else
+  codesign --force --sign - Porta.app
+fi
+codesign --verify --deep --strict Porta.app
+lipo Porta.app/Contents/MacOS/Porta -verify_arch arm64 x86_64
+echo "Aplicación universal compilada: Porta.app"

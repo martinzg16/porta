@@ -41,7 +41,23 @@ La clasificación **no usa un modelo de IA**. Detecta patrones de DNI/NIE y dire
 
 ## Cómo probarlo
 
-Necesitas un **Mac con Apple Silicon**, **macOS 14 o posterior** y las herramientas de línea de comandos de Xcode. La compilación actual está configurada para ARM64.
+### Descargar la aplicación
+
+Consulta las [descargas de Porta](https://github.com/martinzg16/porta/releases) y, cuando haya una versión publicada, descarga **Porta-1.3-universal-beta.dmg** desde Assets (no «Source code»).
+
+1. Abre el DMG y arrastra **Porta** a **Aplicaciones**.
+2. Expulsa el disco y abre Porta desde Aplicaciones.
+3. Busca el icono del portapapeles en la barra de menús. Copia algo y pulsa **⌘⌥V**.
+
+Requiere **macOS 14 o posterior**, en **Intel o Apple Silicon**. No necesita Xcode ni Terminal. No funciona en Windows o Linux.
+
+**La beta no está notarizada por Apple.** macOS puede bloquear la primera apertura. Si confías en la descarga del repositorio oficial, tras intentar abrirla utiliza **Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente**, siguiendo la [guía de Apple](https://support.apple.com/es-es/102445). No desactives las protecciones generales del Mac. En equipos gestionados, esta excepción puede estar bloqueada.
+
+[Instalación, actualizaciones y solución de problemas](docs/INSTALL.txt).
+
+### Compilar desde el código
+
+Solo para desarrollo: necesitas las herramientas de línea de comandos de Xcode. La compilación genera una app universal (ARM64 e Intel).
 
 ```sh
 # Si no tienes las herramientas de desarrollo de Apple:
@@ -58,7 +74,7 @@ open Porta.app
 3. Busca o filtra, selecciona un elemento y pulsa **Enter**.
 4. Para corregir su clasificación, utiliza el selector **Categoría**.
 
-Abrir el historial no requiere Accesibilidad. Para pegar automáticamente en otra aplicación, activa **Porta** en **Ajustes del Sistema → Privacidad y seguridad → Accesibilidad**.
+Abrir el historial no requiere Accesibilidad. Sin ese permiso, Enter copia el elemento seleccionado: pulsa Esc y ⌘V para pegarlo. Para pegar automáticamente en otra aplicación, activa **Porta** en **Ajustes del Sistema → Privacidad y seguridad → Accesibilidad**.
 
 | Tecla | Acción |
 | --- | --- |
@@ -99,7 +115,7 @@ Es una herramienta personal en evolución, no una aplicación distribuida y nota
 
 Las pruebas automatizadas cubren clasificación, historial antiguo, persistencia de categorías y recuperación de texto, imágenes y referencias a archivos. La compatibilidad con aplicaciones de terceros requiere además uso real; no hay una matriz exhaustiva de compatibilidad.
 
-Posibles siguientes pasos, todavía **no implementados**: categorías propias, atajo configurable y una distribución que simplifique actualizaciones y permisos.
+Posibles siguientes pasos, todavía **no implementados**: categorías propias, atajo configurable y actualizaciones automáticas y distribución firmada y notarizada por Apple.
 
 ## Para quien quiera mirar el código
 

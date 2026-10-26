@@ -1,15 +1,51 @@
-name: Build and test
+name: Build, test and package
 on:
   push:
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  macos:
-    runs-on: macos-15
+  package:
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
-      - name: Build native app
-        run: zsh build.sh
-      - name: Test classification and legacy history
-        run: Porta.app/Contents/MacOS/Porta --category-self-test
+      - name: Build and package universal beta
+        run: zsh scripts/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Porta-universal-beta
+          path: dist/*
+          if-no-files-found: error
+  test:
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15-intel, macos-26]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Porta-universal-beta
+          path: dist
+      - name: Verify the actual distribution on this Mac
+        run: zsh scripts/verify-package.sh dist/*.dmg
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && contains(github.ref, '-beta.')
+    needs: [package, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Porta-universal-beta
+          path: dist
+      - name: Publish tested beta
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: gh release create "$RELEASE_TAG" dist/* --verify-tag --prerelease --title "Porta $RELEASE_TAG" --notes-file docs/RELEASE.md
