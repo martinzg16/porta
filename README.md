@@ -43,7 +43,9 @@ La clasificación **no usa un modelo de IA**. Detecta patrones de DNI/NIE y dire
 
 ### Descargar la aplicación
 
-Consulta las [descargas de Porta](https://github.com/martinzg16/porta/releases) y, cuando haya una versión publicada, descarga **Porta-1.3-universal-beta.dmg** desde Assets (no «Source code»).
+**[Descargar Porta para Mac — beta 1.3](https://github.com/martinzg16/porta/releases/download/v1.3-beta.1/Porta-1.3-universal-beta.dmg)**
+
+También puedes consultar las [versiones publicadas](https://github.com/martinzg16/porta/releases). Descarga el archivo `.dmg` desde Assets (no «Source code»).
 
 1. Abre el DMG y arrastra **Porta** a **Aplicaciones**.
 2. Expulsa el disco y abre Porta desde Aplicaciones.
