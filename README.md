@@ -43,7 +43,7 @@ La clasificación **no usa un modelo de IA**. Detecta patrones de DNI/NIE y dire
 
 ### Descargar la aplicación
 
-**[Descargar Porta para Mac — beta 1.3](https://github.com/martinzg16/porta/releases/download/v1.3-beta.1/Porta-1.3-universal-beta.dmg)**
+**[Descargar Porta para Mac — beta 1.3](https://github.com/martinzg16/porta/releases/download/v1.3-beta.2/Porta-1.3-universal-beta.dmg)**
 
 También puedes consultar las [versiones publicadas](https://github.com/martinzg16/porta/releases). Descarga el archivo `.dmg` desde Assets (no «Source code»).
 
@@ -55,7 +55,7 @@ Requiere **macOS 14 o posterior**, en **Intel o Apple Silicon**. No necesita Xco
 
 **La beta no está notarizada por Apple.** macOS puede bloquear la primera apertura. Si confías en la descarga del repositorio oficial, tras intentar abrirla utiliza **Ajustes del Sistema → Privacidad y seguridad → Abrir igualmente**, siguiendo la [guía de Apple](https://support.apple.com/es-es/102445). No desactives las protecciones generales del Mac. En equipos gestionados, esta excepción puede estar bloqueada.
 
-[Instalación, actualizaciones y solución de problemas](docs/INSTALL.txt).
+[Guía visual de instalación](https://porta-clipboard.secretfield32.chatgpt.site/#instalar).
 
 ### Compilar desde el código
 

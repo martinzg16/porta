@@ -22,7 +22,6 @@ fi
 mkdir "$stage/image"
 ditto Porta.app "$stage/image/Porta.app"
 ln -s /Applications "$stage/image/Applications"
-cp docs/INSTALL.txt "$stage/image/LEEME.txt"
 name="Porta-$version-$label"
 hdiutil create -ov -volname "Porta $version" -srcfolder "$stage/image" -format UDZO "dist/$name.dmg"
 hdiutil verify "dist/$name.dmg"

@@ -15,7 +15,7 @@ mkdir "$stage/mount"
 hdiutil attach -readonly -nobrowse -mountpoint "$stage/mount" "$package"
 mounted=1
 test -L "$stage/mount/Applications"
-test -f "$stage/mount/LEEME.txt"
+test ! -e "$stage/mount/LEEME.txt"
 # Simulate copying out of the read-only installer into a path with spaces.
 ditto "$stage/mount/Porta.app" "$stage/Installed Apps/Porta.app"
 hdiutil detach "$stage/mount"
