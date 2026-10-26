@@ -90,6 +90,57 @@ enum ClipCodec {
     }
 }
 
+enum HistoryStore {
+    static let diskLimit = 64 * 1024 * 1024
+    static let memoryLimit = 32 * 1024 * 1024
+    enum Failure: Error { case unsafePath, tooLarge }
+
+    // Restrict the directory before creating either history or diagnostic files.
+    static func prepare(_ directory: URL) throws {
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: directory.path) {
+            try fm.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        }
+        let attributes = try fm.attributesOfItem(atPath: directory.path)
+        guard attributes[.type] as? FileAttributeType == .typeDirectory,
+              (attributes[.ownerAccountID] as? NSNumber)?.uint32Value == getuid() else { throw Failure.unsafePath }
+        try fm.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+    }
+    static func write(_ data: Data, to url: URL) throws {
+        guard data.count <= diskLimit else { throw Failure.tooLarge }
+        try prepare(url.deletingLastPathComponent())
+        // Atomic replacement does not follow a destination symlink. The private
+        // directory prevents other OS users from reading intermediate files.
+        try data.write(to: url, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+    }
+    static func bounded(_ clips: [Clip]) -> [Clip] {
+        var result: [Clip] = [], total = 0
+        for clip in clips.prefix(100) {
+            guard clip.title.utf8.count <= 80000, clip.id.utf8.count <= 256,
+                  clip.items.count <= 256, clip.size <= ClipCodec.limit,
+                  total + clip.size <= memoryLimit else { continue }
+            total += clip.size
+            result.append(clip)
+        }
+        return result
+    }
+    static func load(from url: URL) throws -> [Clip] {
+        try prepare(url.deletingLastPathComponent())
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+        guard attrs[.type] as? FileAttributeType == .typeRegular,
+              (attrs[.ownerAccountID] as? NSNumber)?.uint32Value == getuid() else { throw Failure.unsafePath }
+        guard (attrs[.size] as? NSNumber)?.intValue ?? Int.max <= diskLimit else { throw Failure.tooLarge }
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        let data = try handle.read(upToCount: diskLimit + 1) ?? Data()
+        guard data.count <= diskLimit else { throw Failure.tooLarge }
+        return bounded(try JSONDecoder().decode([Clip].self, from: data))
+    }
+}
+
 final class PickerPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { true }
@@ -121,7 +172,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
-        if let data = try? Data(contentsOf: historyURL), let saved = try? JSONDecoder().decode([Clip].self, from: data) { clips = Array(saved.prefix(100)) }
+        if let saved = try? HistoryStore.load(from: historyURL) { clips = saved }
         setupPanel()
         status = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         status.button?.image = NSImage(systemSymbolName: "clipboard", accessibilityDescription: "Porta · Portapapeles")
@@ -174,8 +225,7 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
     func writeStatus() {
         let status: [String: Any] = ["pid": ProcessInfo.processInfo.processIdentifier, "shortcutRegistered": hotKey != nil, "shortcutError": hotKeyStatus, "accessibility": AXIsProcessTrusted(), "paused": paused]
         if let data = try? JSONSerialization.data(withJSONObject: status, options: .sortedKeys) {
-            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            try? data.write(to: directory.appendingPathComponent("status.json"), options: .atomic)
+            try? HistoryStore.write(data, to: directory.appendingPathComponent("status.json"))
         }
     }
 
@@ -194,13 +244,11 @@ final class App: NSObject, NSApplicationDelegate, NSTableViewDataSource, NSTable
 
     func save() {
         let snapshot = clips
-        let directory = self.directory, url = historyURL
+        let url = historyURL
         diskQueue.async {
             do {
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
-                let data = try JSONEncoder().encode(snapshot)
-                try data.write(to: url, options: .atomic)
-                try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+                let data = try JSONEncoder().encode(HistoryStore.bounded(snapshot))
+                try HistoryStore.write(data, to: url)
             } catch {
                 DispatchQueue.main.async { self.footer.stringValue = "No se pudo guardar el historial en disco." }
             }
@@ -435,6 +483,7 @@ func shortcutSelfTest() {
 
 func selfTest() {
     categorySelfTest()
+    storageSecuritySelfTest()
     let board = NSPasteboard.withUniqueName()
     defer { board.releaseGlobally() }
     board.setString("Prueba de texto con acentos: información 🐈", forType: .string)
@@ -475,6 +524,43 @@ func selfTest() {
     board.setData(Data(repeating: 1, count: ClipCodec.limit + 1), forType: .png)
     precondition(ClipCodec.capture(board) == nil)
     print("PASS: text roundtrip, stable deduplication, persistence, concealed exclusion, file URL roundtrip, image roundtrip, size limit")
+}
+
+func storageSecuritySelfTest() {
+    let fm = FileManager.default
+    let root = fm.temporaryDirectory.appendingPathComponent("porta-security-" + UUID().uuidString)
+    defer { try? fm.removeItem(at: root) }
+    let dir = root.appendingPathComponent("data"), url = dir.appendingPathComponent("history.json")
+    try! HistoryStore.write(Data("[]".utf8), to: url)
+    precondition(try! HistoryStore.load(from: url).isEmpty)
+    let da = try! fm.attributesOfItem(atPath: dir.path), fa = try! fm.attributesOfItem(atPath: url.path)
+    precondition((da[.posixPermissions] as! NSNumber).intValue == 0o700)
+    precondition((fa[.posixPermissions] as! NSNumber).intValue == 0o600)
+    try! fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: dir.path)
+    try! fm.setAttributes([.posixPermissions: 0o644], ofItemAtPath: url.path)
+    _ = try! HistoryStore.load(from: url)
+    precondition((try! fm.attributesOfItem(atPath: dir.path)[.posixPermissions] as! NSNumber).intValue == 0o700)
+    precondition((try! fm.attributesOfItem(atPath: url.path)[.posixPermissions] as! NSNumber).intValue == 0o600)
+    let target = root.appendingPathComponent("untouched")
+    try! Data("private-test".utf8).write(to: target)
+    try! fm.removeItem(at: url)
+    try! fm.createSymbolicLink(at: url, withDestinationURL: target)
+    do { _ = try HistoryStore.load(from: url); preconditionFailure("Symlink history accepted") } catch {}
+    try! HistoryStore.write(Data("[]".utf8), to: url)
+    precondition(try! String(contentsOf: target, encoding: .utf8) == "private-test")
+    let linkedDir = root.appendingPathComponent("linked")
+    try! fm.createSymbolicLink(at: linkedDir, withDestinationURL: dir)
+    do { try HistoryStore.prepare(linkedDir); preconditionFailure("Symlink directory accepted") } catch {}
+    let handle = try! FileHandle(forWritingTo: url)
+    try! handle.truncate(atOffset: UInt64(HistoryStore.diskLimit + 1)); try! handle.close()
+    do { _ = try HistoryStore.load(from: url); preconditionFailure("Oversized history accepted") } catch {}
+    try! HistoryStore.write(Data("invalid json".utf8), to: url)
+    do { _ = try HistoryStore.load(from: url); preconditionFailure("Corrupt history accepted") } catch {}
+    let small = Clip(id: "test", date: Date(), title: "Example", kind: "Texto", items: [])
+    precondition(HistoryStore.bounded(Array(repeating: small, count: 101)).count == 100)
+    var large = small; large.items = [["public.data": Data(count: ClipCodec.limit + 1)]]
+    precondition(HistoryStore.bounded([large]).isEmpty)
+    print("PASS: private directory/files, symlink rejection, atomic replacement, bounded and corrupt history")
 }
 
 func categorySelfTest() {

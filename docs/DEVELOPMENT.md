@@ -54,7 +54,7 @@ No añadir historiales, diagnósticos locales ni capturas que contengan datos re
 
 ```sh
 zsh scripts/package.sh
-zsh scripts/verify-package.sh dist/Porta-1.3-universal-beta.dmg
+zsh scripts/verify-package.sh dist/Porta-1.3.1-universal-beta.dmg
 ```
 
 Genera un DMG con Porta, un acceso a Aplicaciones y SHA-256.
@@ -62,7 +62,7 @@ El verificador copia la aplicación fuera del DMG, valida su firma y ejecuta
 las pruebas sobre esa copia. No usa el historial ni el portapapeles general.
 
 GitHub Actions construye un único DMG en macOS 14 y prueba ese mismo archivo
-en macOS 14 ARM, 15 Intel y 26 ARM. Un tag `v1.3-beta.2` publica una prerelease
+en macOS 14 ARM, 15 Intel y 26 ARM. Un tag `v1.3.1-beta.1` publica una prerelease
 solo cuando todas las comprobaciones pasan. Los otros pushes solo prueban.
 Antes de crear un nuevo tag, actualizar versión, build y notas de release.
 

@@ -12,7 +12,7 @@ xattr -cr Porta.app
 if [[ -n "${SIGNING_IDENTITY:-}" ]]; then
   codesign --force --options runtime --timestamp --sign "$SIGNING_IDENTITY" Porta.app
 else
-  codesign --force --sign - Porta.app
+  codesign --force --options runtime --sign - Porta.app
 fi
 codesign --verify --deep --strict Porta.app
 lipo Porta.app/Contents/MacOS/Porta -verify_arch arm64 x86_64

@@ -1,4 +1,4 @@
-Descarga el archivo **Porta-1.3-universal-beta.dmg** de Assets. Los archivos «Source code» son para desarrollo.
+Descarga el archivo **Porta-1.3.1-universal-beta.dmg** de Assets. Los archivos «Source code» son para desarrollo.
 
 **[Guía visual de instalación](https://martinzg16.github.io/porta/#instalar)**. El instalador contiene solo Porta y el acceso a Aplicaciones; no incluye archivos LEEME.
 
@@ -17,3 +17,7 @@ Para actualizar, sal de Porta antes de reemplazarla. El historial se conserva. L
 El proceso de publicación verifica el mismo DMG en macOS 14 ARM, macOS 15 Intel y macOS 26 ARM: integridad, firma local, instalación por copia y pruebas de clasificación, persistencia y formatos del portapapeles. Esto no certifica todas las aplicaciones ni el pegado automático en todos los equipos. Informa de problemas con pasos y datos ficticios en Issues.
 
 El historial es local y no está cifrado. No uses Porta como gestor de contraseñas.
+
+### Seguridad en esta versión
+
+Permisos privados para la carpeta y los archivos del historial, rechazo de enlaces simbólicos al cargar datos, límites al tamaño del historial y hardened runtime. La web limita scripts y recursos mediante CSP; las acciones de CI están fijadas a commits. El historial sigue sin cifrar y esta beta no está notarizada.

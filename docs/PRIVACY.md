@@ -22,3 +22,5 @@ Datos personales es un filtro organizativo, no una barrera de seguridad. Su dete
 ## Permisos
 
 El atajo global abre el historial sin Accesibilidad. El pegado automático sí necesita ese permiso, porque simula una pulsación en la aplicación de destino. Antes de enviar teclas, Porta comprueba que esa aplicación esté activa y que se hayan soltado los modificadores.
+
+Desde 1.3.1, Porta restringe su carpeta a permisos 0700 y sus archivos a 0600, también al cargar datos existentes. El historial sigue sin cifrar: estas medidas no protegen frente a procesos que ya se ejecutan con tu mismo usuario. Véase [Seguridad](../SECURITY.md).
